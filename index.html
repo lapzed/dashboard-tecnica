@@ -92,6 +92,45 @@
   .btn-brigadas:hover  { background: #0284c7; }
   .btn-contratos { background: #0f766e; color: #fff; }
   .btn-contratos:hover { background: #0d9488; }
+  .btn-calc { background: #7c3aed; color: #fff; }
+  .btn-calc:hover { background: #6d28d9; }
+
+  /* ── Calculadora jornada ── */
+  #panel-calc { display:none; margin-top:16px; background:var(--card); border:1px solid var(--borde);
+    border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+  .calc-header { display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; background:#4c1d95; color:#fff; }
+  .calc-header h3 { margin:0; font-size:.95rem; }
+  .calc-tabs { display:flex; gap:0; border-bottom:2px solid var(--borde); }
+  .calc-tab { padding:9px 20px; font-size:.8rem; font-weight:700; cursor:pointer;
+    border:none; background:none; color:var(--sub); border-bottom:2px solid transparent;
+    margin-bottom:-2px; transition:color .15s; }
+  .calc-tab.activo { color:#7c3aed; border-bottom-color:#7c3aed; }
+  .calc-body { padding:18px; display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:700px){ .calc-body{ grid-template-columns:1fr; } }
+  .calc-section { }
+  .calc-section h4 { font-size:.75rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--sub); margin-bottom:10px; }
+  .comp-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+  .comp-row label { flex:1; font-size:.82rem; }
+  .comp-row .qty { width:48px; padding:4px 6px; border:1px solid var(--borde);
+    border-radius:6px; text-align:center; font-size:.85rem; font-weight:700; }
+  .comp-row .min-label { font-size:.72rem; color:var(--sub); width:60px; text-align:right; white-space:nowrap; }
+  .overhead-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .overhead-row label { flex:1; font-size:.82rem; }
+  .overhead-row select, .overhead-row input[type=number] {
+    width:72px; padding:5px 8px; border:1px solid var(--borde); border-radius:6px;
+    font-size:.85rem; font-weight:700; text-align:center; }
+  .calc-resultado { background:linear-gradient(135deg,#4c1d95,#7c3aed); color:#fff;
+    border-radius:12px; padding:18px; margin-top:4px; }
+  .calc-resultado .res-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .calc-kpi { text-align:center; }
+  .calc-kpi .val { font-size:2rem; font-weight:800; }
+  .calc-kpi .lbl { font-size:.65rem; opacity:.8; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .calc-breakdown { font-size:.75rem; opacity:.85; line-height:1.8; border-top:1px solid rgba(255,255,255,.2); padding-top:12px; }
+  .jornada-bar { height:18px; border-radius:6px; background:rgba(255,255,255,.15); margin-top:10px; overflow:hidden; display:flex; }
+  .jornada-seg { height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:.6rem; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; transition:width .4s; }
 
   /* ── Panel actividad brigadas ── */
   #panel-brigadas { display:none; margin-top:16px; }
@@ -256,6 +295,7 @@
   <button class="btn btn-conflicto" id="btn-conf" onclick="toggleConflictos()">⚠ Detectar conflictos</button>
   <button class="btn btn-demanda" onclick="toggleDemanda()">📊 Demanda Mttos</button>
   <button class="btn btn-contratos" onclick="toggleContratos()">📅 Contratos Premium</button>
+  <button class="btn btn-calc" onclick="toggleCalc()">🧮 Calculadora Jornada</button>
   <button class="btn btn-reset" onclick="resetData()">Restablecer datos</button>
 </div>
 <p class="nota" id="nota-fuente"></p>
@@ -282,6 +322,72 @@
       <span><span class="dot" style="background:#818cf8"></span> Cuentas premium (Banamex, Cinépolis, etc.)</span>
       <span><span class="dot" style="background:#fbbf24"></span> Mes actual</span>
       <span><span class="dot" style="background:none;border:2px dashed #16a34a"></span> Capacidad 240/mes · Banorte: brigadas propias (no incluidas)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Calculadora de jornada -->
+<div id="panel-calc">
+  <div class="calc-header">
+    <h3>🧮 Calculadora de Jornada</h3>
+    <button onclick="toggleCalc()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer">✕</button>
+  </div>
+  <div class="calc-tabs">
+    <button class="calc-tab activo" onclick="setCalcTab('mant')">Mantenimiento</button>
+    <button class="calc-tab" onclick="setCalcTab('inst')">Instalación</button>
+    <button class="calc-tab" onclick="setCalcTab('lev')">Levantamiento</button>
+  </div>
+  <div class="calc-body">
+    <!-- Componentes -->
+    <div class="calc-section">
+      <h4 id="calc-comp-title">Componentes del servicio</h4>
+      <div id="calc-componentes"></div>
+    </div>
+    <!-- Tiempos fijos + resultado -->
+    <div class="calc-section">
+      <h4>Tiempos fijos de visita</h4>
+      <div class="overhead-row">
+        <label>⏱ Accesos al inmueble</label>
+        <select id="calc-accesos" onchange="calcular()">
+          <option value="25">25 min</option>
+          <option value="40">40 min</option>
+        </select>
+      </div>
+      <div class="overhead-row">
+        <label>📸 Evidencia (generar + compartir)</label>
+        <select id="calc-evidencia" onchange="calcular()">
+          <option value="25">25 min</option>
+          <option value="30">30 min</option>
+        </select>
+      </div>
+      <div class="overhead-row">
+        <label>🍽 Comida</label>
+        <input type="number" value="60" disabled style="background:#f8fafc;color:var(--sub)">
+      </div>
+      <div class="overhead-row" style="margin-top:10px">
+        <label>⏰ Jornada total disponible</label>
+        <select id="calc-jornada" onchange="calcular()">
+          <option value="480">8 horas</option>
+          <option value="540">9 horas</option>
+          <option value="600">10 horas</option>
+        </select>
+      </div>
+      <div class="overhead-row">
+        <label>👷 Brigadas en campo</label>
+        <input type="number" id="calc-brigadas" value="1" min="1" max="10"
+          oninput="calcular()" style="width:72px;padding:5px 8px;border:1px solid var(--borde);border-radius:6px;font-size:.85rem;font-weight:700;text-align:center">
+      </div>
+      <!-- Resultado -->
+      <div class="calc-resultado" id="calc-resultado" style="margin-top:16px">
+        <div class="res-grid">
+          <div class="calc-kpi"><div class="val" id="res-min-svc">—</div><div class="lbl">min / visita</div></div>
+          <div class="calc-kpi"><div class="val" id="res-visitas">—</div><div class="lbl">visitas / brigada / día</div></div>
+          <div class="calc-kpi"><div class="val" id="res-total-dia">—</div><div class="lbl">visitas totales / día</div></div>
+          <div class="calc-kpi"><div class="val" id="res-util">—</div><div class="lbl">% utilización jornada</div></div>
+        </div>
+        <div class="calc-breakdown" id="calc-breakdown"></div>
+        <div class="jornada-bar" id="jornada-bar"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1051,6 +1157,165 @@ setSem = function(sem) {
   if (brigadasVisible) renderBrigadas();
   if (lideresVisible) renderLideres();
 };
+
+// ── Calculadora de Jornada ───────────────────────────────────────────────────
+const CALC_DATOS = {
+  mant: {
+    titulo: "Componentes del servicio — Mantenimiento",
+    comps: [
+      {id:"equipo",      label:"Equipo",         min:15},
+      {id:"trompeta",    label:"Trompeta",        min:10},
+      {id:"amplif",      label:"Amplificador",    min:10},
+      {id:"ups",         label:"UPS",             min:10},
+      {id:"antena",      label:"Antena",          min:15},
+      {id:"estrobo",     label:"Estrobo",         min:5},
+      {id:"prueba_audio",label:"Prueba de Audio", min:35, minAlt:40, nota:"30–40 min"},
+    ]
+  },
+  inst: {
+    titulo: "Componentes del servicio — Instalación",
+    comps: [
+      {id:"equipo",      label:"Equipo (perfil A / B)",          min:35, minAlt:25, nota:"35 / 25 min"},
+      {id:"tromp_plas",  label:"Trompeta Plástico",              min:25, minAlt:20, nota:"25 / 20 min"},
+      {id:"tromp_alum",  label:"Trompeta Aluminio",              min:25, minAlt:20, nota:"25 / 20 min"},
+      {id:"tromp_plaf",  label:"Trompeta Plafón",                min:25},
+      {id:"tramo_gru",   label:"Tramo Tubería 3m Gruesa",        min:20, minAlt:15, nota:"20 / 15 min"},
+      {id:"tramo_del",   label:"Tramo Tubería 3m Delgada",       min:15, minAlt:10, nota:"15 / 10 min"},
+      {id:"amplif",      label:"Amplificador",                   min:20, minAlt:15, nota:"20 / 15 min"},
+      {id:"ups",         label:"UPS",                            min:20, minAlt:15, nota:"20 / 15 min"},
+      {id:"cable_pot",   label:"Tramo Cable 3m POT",             min:10},
+      {id:"cable_dr",    label:"Tramo Cable 3m DR",              min:5},
+      {id:"cable_conc",  label:"Tramo Cable 3m Conceal",         min:20},
+      {id:"antena",      label:"Antena",                         min:20},
+      {id:"estrobo",     label:"Estrobo",                        min:25},
+      {id:"prueba_audio",label:"Prueba de Audio",                min:30, minAlt:40, nota:"30 / 40 min"},
+    ]
+  },
+  lev: {
+    titulo: "Tipo de inmueble — Levantamiento",
+    comps: [
+      {id:"lev_farm",  label:"Farmacéuticos / Bancos",  min:60,  esUnico:true},
+      {id:"lev_admin", label:"Administrativas",         min:90,  esUnico:true},
+      {id:"lev_cedis", label:"Cedis",                   min:90,  esUnico:true},
+      {id:"lev_ind",   label:"Planta Industrial",       min:150, esUnico:true},
+    ],
+    nota: "Selecciona solo 1 tipo de inmueble. Tiempos en minutos."
+  }
+};
+
+let calcTab = "mant";
+
+function toggleCalc() {
+  const p = document.getElementById("panel-calc");
+  const visible = p.style.display === "block";
+  p.style.display = visible ? "none" : "block";
+  if (!visible) { setCalcTab("mant"); }
+}
+
+function setCalcTab(tab) {
+  calcTab = tab;
+  document.querySelectorAll(".calc-tab").forEach((t,i) => {
+    t.classList.toggle("activo", ["mant","inst","lev"][i] === tab);
+  });
+  renderCalcComps();
+  calcular();
+}
+
+function renderCalcComps() {
+  const datos = CALC_DATOS[calcTab];
+  document.getElementById("calc-comp-title").textContent = datos.titulo;
+  let html = "";
+  if (datos.nota) html += `<div style="font-size:.72rem;color:var(--sub);margin-bottom:10px">${datos.nota}</div>`;
+  datos.comps.forEach(c => {
+    const nota = c.nota ? `<span style="font-size:.65rem;color:var(--sub)">(${c.nota})</span>` : "";
+    if (c.esUnico) {
+      html += `<div class="comp-row">
+        <input type="radio" name="lev_tipo" id="r_${c.id}" value="${c.id}" onchange="calcular()" style="margin:0">
+        <label for="r_${c.id}" style="flex:1;font-size:.82rem">${c.label}</label>
+        <span class="min-label">${c.min} min</span>
+      </div>`;
+    } else {
+      html += `<div class="comp-row">
+        <input type="checkbox" id="chk_${c.id}" onchange="calcular()" style="margin:0">
+        <label for="chk_${c.id}" style="flex:1;font-size:.82rem">${c.label} ${nota}</label>
+        <input type="number" id="qty_${c.id}" value="1" min="0" max="99"
+          class="qty" oninput="calcular()">
+        <span class="min-label">${c.minAlt ? (c.min+'/'+c.minAlt) : c.min} min</span>
+      </div>`;
+    }
+  });
+  document.getElementById("calc-componentes").innerHTML = html;
+}
+
+function calcular() {
+  const datos  = CALC_DATOS[calcTab];
+  const accesos = +document.getElementById("calc-accesos").value;
+  const evid    = +document.getElementById("calc-evidencia").value;
+  const comida  = 60;
+  const jornada = +document.getElementById("calc-jornada").value;
+  const brigs   = +document.getElementById("calc-brigadas").value || 1;
+
+  let minComps = 0;
+  let detalles = [];
+
+  if (calcTab === "lev") {
+    const sel = document.querySelector("input[name='lev_tipo']:checked");
+    if (sel) {
+      const comp = datos.comps.find(c => c.id === sel.value);
+      minComps = comp.min;
+      detalles.push(`${comp.label}: ${comp.min} min`);
+    }
+  } else {
+    datos.comps.forEach(c => {
+      const chk = document.getElementById("chk_"+c.id);
+      if (chk && chk.checked) {
+        const qty = +document.getElementById("qty_"+c.id).value || 1;
+        const m = c.min * qty;
+        minComps += m;
+        detalles.push(`${c.label} ×${qty}: ${m} min`);
+      }
+    });
+  }
+
+  const minVisita  = minComps + accesos + evid;
+  const minLibres  = jornada - comida;
+  const visitasDia = minComps > 0 ? Math.floor(minLibres / minVisita) : 0;
+  const totalDia   = visitasDia * brigs;
+  const util       = minLibres > 0 ? Math.round((visitasDia * minVisita / minLibres) * 100) : 0;
+
+  document.getElementById("res-min-svc").textContent   = minVisita || "—";
+  document.getElementById("res-visitas").textContent   = visitasDia || "—";
+  document.getElementById("res-total-dia").textContent = totalDia || "—";
+  document.getElementById("res-util").textContent      = minComps > 0 ? util+"%" : "—";
+
+  // Desglose
+  const fmt = m => m >= 60 ? `${Math.floor(m/60)}h ${m%60>0?m%60+"min":""}`.trim() : `${m} min`;
+  let bd = "";
+  if (detalles.length) {
+    bd += `<b>Componentes:</b> ${detalles.join(" · ")}<br>`;
+    bd += `<b>Overhead:</b> Accesos ${accesos} min · Evidencia ${evid} min · Comida ${comida} min<br>`;
+    bd += `<b>Por visita:</b> ${fmt(minComps)} componentes + ${accesos+evid} min overhead = ${fmt(minVisita)}<br>`;
+    bd += `<b>Jornada útil:</b> ${fmt(minLibres)} → ${visitasDia} visita${visitasDia!==1?"s":""}/brigada`;
+    if (brigs > 1) bd += ` × ${brigs} brigadas = <b>${totalDia} visitas totales</b>`;
+  } else {
+    bd = "Selecciona al menos un componente para calcular.";
+  }
+  document.getElementById("calc-breakdown").innerHTML = bd;
+
+  // Barra visual
+  const colores = ["#a78bfa","#818cf8","#c4b5fd","#e9d5ff"];
+  const segs = minComps > 0 ? [
+    {label:"Componentes", min:minComps*visitasDia, color:"#a78bfa"},
+    {label:"Accesos",     min:accesos*visitasDia,  color:"#7c3aed"},
+    {label:"Evidencia",   min:evid*visitasDia,     color:"#6d28d9"},
+    {label:"Comida",      min:comida,              color:"#4c1d95"},
+    {label:"Libre",       min:minLibres - visitasDia*minVisita, color:"rgba(255,255,255,.15)"},
+  ] : [];
+  const total = jornada;
+  document.getElementById("jornada-bar").innerHTML = segs.map(s =>
+    s.min > 0 ? `<div class="jornada-seg" style="width:${Math.round(s.min/total*100)}%;background:${s.color}">${s.min>20?s.label:""}</div>` : ""
+  ).join("");
+}
 
 // ── Contratos Premium ────────────────────────────────────────────────────────
 const CONTRATOS_DIST = [
