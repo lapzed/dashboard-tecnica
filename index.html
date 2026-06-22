@@ -1163,13 +1163,19 @@ const CALC_DATOS = {
   mant: {
     titulo: "Componentes del servicio — Mantenimiento",
     comps: [
-      {id:"equipo",      label:"Equipo",         min:15},
-      {id:"trompeta",    label:"Trompeta",        min:10},
-      {id:"amplif",      label:"Amplificador",    min:10},
-      {id:"ups",         label:"UPS",             min:10},
-      {id:"antena",      label:"Antena",          min:15},
-      {id:"estrobo",     label:"Estrobo",         min:5},
-      {id:"prueba_audio",label:"Prueba de Audio", min:35, minAlt:40, nota:"30–40 min"},
+      {id:"sep_equipo",   label:"── Equipo principal ──", separador:true},
+      {id:"sarmex11",     label:"Sarmex 11",    min:30},
+      {id:"mdt10w",       label:"MDT10W",        min:30},
+      {id:"pa20",         label:"PA20",          min:30},
+      {id:"pa20_40",      label:"PA20/40",       min:30},
+      {id:"pa400",        label:"PA400",         min:60},
+      {id:"sep_comp",     label:"── Componentes ──", separador:true},
+      {id:"trompeta",     label:"Trompeta",      min:10},
+      {id:"amplif",       label:"Amplificador",  min:10},
+      {id:"ups",          label:"UPS",           min:10},
+      {id:"antena",       label:"Antena",        min:15},
+      {id:"estrobo",      label:"Estrobo",       min:5},
+      {id:"prueba_audio", label:"Prueba de Audio", min:30, minAlt:40, nota:"30–40 min"},
     ]
   },
   inst: {
@@ -1228,7 +1234,11 @@ function renderCalcComps() {
   if (datos.nota) html += `<div style="font-size:.72rem;color:var(--sub);margin-bottom:10px">${datos.nota}</div>`;
   datos.comps.forEach(c => {
     const nota = c.nota ? `<span style="font-size:.65rem;color:var(--sub)">(${c.nota})</span>` : "";
-    if (c.esUnico) {
+    if (c.separador) {
+      html += `<div style="font-size:.7rem;font-weight:700;color:var(--sub);text-transform:uppercase;
+        letter-spacing:.05em;margin:10px 0 6px;padding-top:6px;border-top:1px solid var(--borde)">
+        ${c.label.replace(/──/g,"").trim()}</div>`;
+    } else if (c.esUnico) {
       html += `<div class="comp-row">
         <input type="radio" name="lev_tipo" id="r_${c.id}" value="${c.id}" onchange="calcular()" style="margin:0">
         <label for="r_${c.id}" style="flex:1;font-size:.82rem">${c.label}</label>
