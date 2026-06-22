@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Área Técnica · MDreieck</title>
+<style>
+  :root {
+    --verde:    #16a34a; --verde-bg:   #dcfce7;
+    --amarillo: #ca8a04; --amarillo-bg:#fef9c3;
+    --rojo:     #dc2626; --rojo-bg:    #fee2e2;
+    --gris:     #94a3b8; --gris-bg:    #f1f5f9;
+    --azul:     #2563eb; --azul-bg:    #dbeafe;
+    --fondo: #f8fafc; --card: #ffffff; --borde: #e2e8f0; --texto: #1e293b; --sub: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: var(--fondo); color: var(--texto); padding: 20px; }
+
+  header { margin-bottom: 20px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header p  { color: var(--sub); font-size: .85rem; margin-top: 3px; }
+
+  /* ── Selector de periodo ── */
+  .periodo { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  .sem-card { background: var(--card); border: 2px solid var(--borde); border-radius: 12px;
+              padding: 12px 18px; cursor: pointer; transition: border-color .2s; min-width: 190px; }
+  .sem-card.activa { border-color: var(--azul); background: var(--azul-bg); }
+  .sem-card .etq { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--sub); }
+  .sem-card .fecha { font-size: .95rem; font-weight: 700; margin-top: 2px; }
+  .sem-card .tipo { font-size: .75rem; margin-top: 3px; }
+  .sem-card.hecho .tipo { color: var(--verde); }
+  .sem-card.proxima .tipo { color: var(--azul); }
+
+  /* ── Tabla de coordinaciones ── */
+  .tabla-wrap { background: var(--card); border: 1px solid var(--borde); border-radius: 14px;
+                overflow: hidden; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #f8fafc; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+             letter-spacing: .05em; color: var(--sub); padding: 10px 14px; text-align: left;
+             border-bottom: 1px solid var(--borde); }
+  tbody tr { border-bottom: 1px solid var(--borde); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+  td { padding: 12px 14px; font-size: .875rem; vertical-align: middle; }
+  td.coord { font-weight: 700; }
+  td.resp  { color: var(--sub); font-size: .78rem; }
+
+  /* ── Input numérico inline ── */
+  .num-input { display: flex; align-items: center; gap: 8px; }
+  .num-input input { width: 64px; padding: 5px 8px; border: 1px solid var(--borde);
+                     border-radius: 8px; font-size: .95rem; font-weight: 700;
+                     text-align: center; color: var(--texto); }
+  .num-input input:focus { outline: 2px solid var(--azul); border-color: transparent; }
+  .meta-txt { font-size: .72rem; color: var(--sub); white-space: nowrap; }
+
+  /* ── Semáforo ── */
+  .sem { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+  .sem.verde    { background: var(--verde);    box-shadow: 0 0 8px #16a34a55; }
+  .sem.amarillo { background: var(--amarillo); box-shadow: 0 0 8px #ca8a0455; }
+  .sem.rojo     { background: var(--rojo);     box-shadow: 0 0 8px #dc262655; }
+  .sem.gris     { background: var(--gris); }
+  .sem.azul     { background: var(--azul);     box-shadow: 0 0 8px #2563eb55; }
+
+  /* ── Barra de progreso ── */
+  .barra-wrap { background: #f1f5f9; border-radius: 99px; height: 8px; width: 90px; margin-top: 4px; }
+  .barra { height: 100%; border-radius: 99px; transition: width .4s, background .4s; }
+
+  /* ── Totales ── */
+  .totales { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+             gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--borde); border-radius: 12px;
+               padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .stat-card .num { font-size: 2rem; font-weight: 800; }
+  .stat-card .lbl { font-size: .72rem; color: var(--sub); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat-card.verde-t  .num { color: var(--verde); }
+  .stat-card.azul-t   .num { color: var(--azul); }
+  .stat-card.gris-t   .num { color: var(--gris); }
+
+  /* ── Botones ── */
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { padding: 9px 18px; border: none; border-radius: 8px; font-size: .85rem;
+         font-weight: 600; cursor: pointer; }
+  .btn-exportar  { background: #1e40af; color: #fff; }
+  .btn-exportar:hover  { background: #1d4ed8; }
+  .btn-reset     { background: #f1f5f9; color: var(--sub); border: 1px solid var(--borde); }
+  .btn-reset:hover     { background: #e2e8f0; }
+  .btn-conflicto { background: #7c3aed; color: #fff; }
+  .btn-conflicto:hover { background: #6d28d9; }
+  .btn-demanda { background: #b45309; color: #fff; }
+  .btn-demanda:hover { background: #92400e; }
+  .btn-brigadas  { background: #0369a1; color: #fff; }
+  .btn-brigadas:hover  { background: #0284c7; }
+  .btn-contratos { background: #0f766e; color: #fff; }
+  .btn-contratos:hover { background: #0d9488; }
+
+  /* ── Panel actividad brigadas ── */
+  #panel-brigadas { display:none; margin-top:16px; }
+  .brig-coord { background:var(--card); border:1px solid var(--borde); border-radius:14px;
+    overflow:hidden; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .brig-coord-header { padding:10px 16px; display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--borde); }
+  .brig-coord-header h4 { font-size:.85rem; font-weight:700; }
+  .brig-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+  .brig-table th { background:#f8fafc; padding:6px 10px; text-align:center;
+    font-weight:700; color:var(--sub); font-size:.7rem; border-bottom:1px solid var(--borde);
+    white-space:nowrap; }
+  .brig-table th.tec-col { text-align:left; }
+  .brig-table td { padding:5px 10px; text-align:center; border-bottom:1px solid #f1f5f9; }
+  .brig-table td.tec-name { text-align:left; font-weight:600; white-space:nowrap;
+    font-size:.75rem; }
+  .brig-table tr:last-child td { border-bottom:none; font-weight:700; background:#f8fafc; }
+  .brig-table .total-col { font-weight:800; background:#f0f9ff; }
+  .cell-0    { color:#cbd5e1; }
+  .cell-1    { background:#dbeafe; color:#1e40af; font-weight:700; border-radius:4px; }
+  .cell-2    { background:#bfdbfe; color:#1e3a8a; font-weight:700; border-radius:4px; }
+  .cell-3    { background:#93c5fd; color:#1e3a8a; font-weight:800; border-radius:4px; }
+  .cell-4p   { background:#3b82f6; color:#fff;    font-weight:800; border-radius:4px; }
+  .cell-over { background:#ef4444; color:#fff;    font-weight:800; border-radius:4px; outline:2px solid #b91c1c; }
+  .btn-lideres { background:#16a34a; color:#fff; }
+  .btn-lideres:hover { background:#15803d; }
+  #panel-lideres { display:none; margin-top:16px; }
+  .lider-row-over { background:#fff7ed !important; }
+  .cap-badge { display:inline-block; font-size:.6rem; font-weight:700; padding:1px 5px;
+    border-radius:99px; margin-left:4px; }
+  .cap-ok   { background:#dcfce7; color:#166534; }
+  .cap-warn { background:#fef9c3; color:#92400e; }
+  .cap-over { background:#fee2e2; color:#dc2626; }
+  .btn-conflicto.sin-conflicto { background: #16a34a; }
+
+  /* ── Panel demanda mantenimientos ── */
+  #panel-demanda { display:none; margin-top:16px; background:var(--card);
+    border:1px solid var(--borde); border-radius:14px; overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.07); }
+  .dem-header { display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; background:#78350f; color:#fff; }
+  .dem-header h3 { margin:0; font-size:.95rem; }
+  .dem-header .cerrar { background:none; border:none; color:#fff; font-size:1.1rem; cursor:pointer; }
+  .dem-body { padding:18px; }
+  .dem-kpis { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .dem-kpi  { flex:1; min-width:130px; background:#fef3c7; border:1px solid #fcd34d;
+    border-radius:10px; padding:10px 14px; text-align:center; }
+  .dem-kpi .kpi-val { font-size:1.5rem; font-weight:800; color:#92400e; }
+  .dem-kpi .kpi-lab { font-size:.65rem; color:#78350f; margin-top:2px; }
+  .dem-kpi.kpi-ok { background:#dcfce7; border-color:#86efac; }
+  .dem-kpi.kpi-ok .kpi-val { color:#166534; }
+  .dem-kpi.kpi-ok .kpi-lab { color:#15803d; }
+  .dem-grafica { position:relative; overflow-x:auto; }
+  .dem-grafica svg { display:block; }
+  .dem-leyenda { display:flex; gap:16px; margin-top:10px; font-size:.68rem; flex-wrap:wrap; }
+  .dem-leyenda span { display:flex; align-items:center; gap:5px; }
+  .dem-leyenda .dot { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  /* ── Panel conflictos ── */
+  #panel-conflictos { display:none; margin-top:16px; background:var(--card);
+    border:1px solid var(--borde); border-radius:14px; overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.07); }
+  .panel-header { display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; background:#faf5ff; border-bottom:1px solid #e9d5ff; }
+  .panel-header h3 { font-size:.9rem; font-weight:700; color:#6d28d9; }
+  .panel-header .cerrar { cursor:pointer; color:var(--sub); font-size:1.1rem;
+    background:none; border:none; font-weight:700; }
+  .conflicto-item { padding:12px 16px; border-bottom:1px solid var(--borde); }
+  .conflicto-item:last-child { border-bottom:none; }
+  .conflicto-badge { display:inline-block; font-size:.65rem; font-weight:700;
+    padding:2px 7px; border-radius:99px; margin-right:6px; }
+  .badge-cross { background:#fee2e2; color:#dc2626; }
+  .badge-same  { background:#fef9c3; color:#92400e; }
+  .conf-tec  { font-weight:700; font-size:.88rem; }
+  .conf-fecha { font-size:.75rem; color:var(--sub); margin-left:6px; }
+  .conf-rows { margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+  .conf-row  { display:flex; align-items:center; gap:8px; font-size:.78rem; }
+  .coord-tag { font-size:.65rem; font-weight:700; padding:2px 6px; border-radius:4px;
+    color:#fff; flex-shrink:0; }
+  .coord-LEV  { background:#0369a1; }
+  .coord-INST { background:#7c3aed; }
+  .coord-MANT { background:#b45309; }
+  .coord-BAN  { background:#16a34a; }
+  .conf-hora  { font-weight:700; white-space:nowrap; }
+  .sin-conf   { padding:20px 16px; text-align:center; color:var(--verde);
+    font-weight:600; font-size:.88rem; }
+
+  .nota { font-size: .75rem; color: var(--sub); margin-top: 8px; font-style: italic; }
+  @media (max-width: 700px) {
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Control · Área Técnica</h1>
+  <p>MDreieck S.A. de C.V. · Gerencia: Guillermo Hernández</p>
+</header>
+
+<!-- Selector de semana -->
+<div class="periodo">
+  <div class="sem-card hecho activa" onclick="setSem('hecho')" id="card-hecho">
+    <div class="etq">Semana anterior</div>
+    <div class="fecha">11 – 17 Jun 2026</div>
+    <div class="tipo">✓ Lo que hicimos</div>
+  </div>
+  <div class="sem-card proxima" onclick="setSem('proxima')" id="card-proxima">
+    <div class="etq">Semana actual</div>
+    <div class="fecha">18 – 24 Jun 2026</div>
+    <div class="tipo">→ Lo que haremos</div>
+  </div>
+</div>
+
+<!-- Tabla de coordinaciones -->
+<div class="tabla-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Coordinación</th>
+        <th>Responsable</th>
+        <th id="col-sem">Servicios realizados</th>
+        <th>Reprogramados</th>
+        <th>Brigadas</th>
+        <th>Meta / semana</th>
+        <th>Avance</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- Totales -->
+<div class="totales" id="totales"></div>
+
+<!-- Alerta vacaciones MANT -->
+<div style="background:#fff1f2;border:1px solid #fca5a5;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start">
+  <span style="font-size:1.3rem;flex-shrink:0">🏖</span>
+  <div style="flex:1">
+    <div style="font-size:.82rem;font-weight:800;color:#dc2626;margin-bottom:4px">4 líderes en vacaciones esta semana · Capacidad reducida en MANT y LEV</div>
+    <div style="font-size:.75rem;color:#7f1d1d;line-height:1.6">
+      <span style="background:#fee2e2;padding:1px 6px;border-radius:4px;margin-right:4px">MANT</span>
+      <b>Aurelio Puga</b> · 22–29 Jun &nbsp;|&nbsp;
+      <b>Ignacio Sierra</b> · 25 Jun – 1 Jul &nbsp;|&nbsp;
+      <b>Diego Pérez</b> · 25 Jun – 1 Jul
+      <br>
+      <span style="background:#dbeafe;padding:1px 6px;border-radius:4px;margin-right:4px">LEV</span>
+      <b>Ricardo Escobar</b> · 22–26 Jun &nbsp;|&nbsp; Solo Luis Osvaldo disponible esta semana
+    </div>
+    <div style="font-size:.75rem;color:#991b1b;margin-top:5px;font-weight:600">
+      ⚠ Banamex (305 svc, deadline 31 Jul): con vacaciones solo se alcanzarían ~291 svc.
+      Opciones: apoyo de Possam Externo o sábados en julio para cubrir el déficit de ~14 svc.
+    </div>
+  </div>
+</div>
+
+<div class="acciones">
+  <button class="btn btn-exportar" onclick="exportar()">Exportar resumen (texto)</button>
+  <button class="btn btn-brigadas" onclick="toggleBrigadas()">📋 Actividad por coordinación</button>
+  <button class="btn btn-lideres"  onclick="toggleLideres()">👤 Líderes de brigada</button>
+  <button class="btn btn-conflicto" id="btn-conf" onclick="toggleConflictos()">⚠ Detectar conflictos</button>
+  <button class="btn btn-demanda" onclick="toggleDemanda()">📊 Demanda Mttos</button>
+  <button class="btn btn-contratos" onclick="toggleContratos()">📅 Contratos Premium</button>
+  <button class="btn btn-reset" onclick="resetData()">Restablecer datos</button>
+</div>
+<p class="nota" id="nota-fuente"></p>
+
+<!-- Panel actividad brigadas -->
+<div id="panel-brigadas"></div>
+
+<!-- Panel líderes de brigada -->
+<div id="panel-lideres"></div>
+
+<!-- Panel demanda mantenimientos -->
+<div id="panel-demanda">
+  <div class="dem-header">
+    <h3>📊 Demanda de Mantenimientos — Proyección 18 meses</h3>
+    <button class="cerrar" onclick="toggleDemanda()">✕</button>
+  </div>
+  <div class="dem-body">
+    <div class="dem-kpis" id="dem-kpis"></div>
+    <div class="dem-grafica" id="dem-grafica"></div>
+    <div id="dem-tabla"></div>
+    <div class="dem-leyenda">
+      <span><span class="dot" style="background:#b45309"></span> Pólizas individuales</span>
+      <span><span class="dot" style="background:#4ade80"></span> Walmart CDMX + Edo Méx</span>
+      <span><span class="dot" style="background:#818cf8"></span> Cuentas premium (Banamex, Cinépolis, etc.)</span>
+      <span><span class="dot" style="background:#fbbf24"></span> Mes actual</span>
+      <span><span class="dot" style="background:none;border:2px dashed #16a34a"></span> Capacidad 240/mes · Banorte: brigadas propias (no incluidas)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Panel contratos premium -->
+<div id="panel-contratos" style="display:none;margin-top:16px;background:var(--card);border:1px solid var(--borde);border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#0f766e;color:#fff">
+    <h3 style="margin:0;font-size:.95rem">📅 Distribución de Contratos Premium — Jun a Dic 2026</h3>
+    <button onclick="toggleContratos()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer">✕</button>
+  </div>
+  <div style="padding:16px" id="contratos-body"></div>
+</div>
+
+<!-- Panel de conflictos -->
+<div id="panel-conflictos">
+  <div class="panel-header">
+    <h3 id="panel-titulo">Conflictos de horario</h3>
+    <button class="cerrar" onclick="toggleConflictos()">✕</button>
+  </div>
+  <div id="panel-body"></div>
+</div>
+
+<script>
+const FRENTES = [
+  { id:"lev",  coord:"Levantamientos", resp:"Jair Vilchis",       meta:24,
+    hecho:15,  proxima:6,  reprogramados:3, brigadas:2, capSem:24,
+    vacaciones:1, notaVac:"🏖 Ricardo Escobar (22-26 jun) · Solo 1 brigada disponible esta semana" },
+  { id:"inst", coord:"Instalaciones",  resp:"Alin Pérez",         meta:18,
+    hecho:11,  proxima:11, reprogramados:0, brigadas:3, capSem:18, vacaciones:1, notaVac:"Heberto: vacaciones" },
+  { id:"mant", coord:"Mantenimientos", resp:"Gabriel Cruz",        meta:72,
+    hecho:52,  proxima:21, reprogramados:5, brigadas:4, capSem:72,
+    vacaciones:3, notaVac:"🏖 Aurelio Puga (22-29 jun) · Ignacio Sierra + Diego Pérez (25 jun – 1 jul) · Cap. reducida ~3 svc/día esta semana" },
+  { id:"ban",  coord:"Banorte",        resp:"Antonio Álvarez",   meta:72,
+    hecho:29,  proxima:21, reprogramados:11, brigadas:4, capSem:72 },
+];
+
+// Estado editable
+const state = {};
+FRENTES.forEach(f => {
+  state[f.id] = { hecho: f.hecho, proxima: f.proxima, reprogramados: f.reprogramados || 0 };
+});
+
+let semActual = "hecho";
+
+function setSem(sem) {
+  semActual = sem;
+  document.getElementById("card-hecho").classList.toggle("activa", sem === "hecho");
+  document.getElementById("card-proxima").classList.toggle("activa", sem === "proxima");
+  document.getElementById("col-sem").textContent =
+    sem === "hecho" ? "Servicios realizados" : "Servicios programados";
+  document.getElementById("nota-fuente").textContent =
+    sem === "hecho"
+      ? "Datos extraídos de los archivos de control al 20-Jun-2026."
+      : "Datos programados extraídos de los archivos de control al 20-Jun-2026.";
+  render();
+}
+
+function semaforo(real, meta, sem) {
+  if (sem === "proxima") {
+    if (real === 0) return "gris";
+    if (real >= meta) return "azul";
+    if (real >= meta * 0.75) return "amarillo";
+    return "rojo";
+  }
+  if (real === 0 && meta > 0) return "rojo";
+  if (real >= meta) return "verde";
+  if (real >= meta * 0.75) return "amarillo";
+  return "rojo";
+}
+
+function colorBarra(pct, sem) {
+  if (sem === "proxima") {
+    if (pct >= 1) return "var(--azul)";
+    if (pct >= 0.75) return "var(--amarillo)";
+    return "var(--rojo)";
+  }
+  if (pct >= 1) return "var(--verde)";
+  if (pct >= 0.75) return "var(--amarillo)";
+  return "var(--rojo)";
+}
+
+function render() {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  FRENTES.forEach(f => {
+    const val  = state[f.id][semActual];
+    const meta = f.meta || 1;
+    const pct  = Math.min(val / meta, 1);
+    const ancho = Math.round(pct * 100);
+    const cl   = f.sinDatos ? "gris" : semaforo(val, meta, semActual);
+    const barColor = f.sinDatos ? "var(--gris)" : colorBarra(pct, semActual);
+    const metaLabel = f.meta ? `Meta: ${f.meta}/sem` : "Sin meta fija";
+
+    tbody.innerHTML += `
+    <tr>
+      <td class="coord">${f.coord}</td>
+      <td class="resp">${f.resp}</td>
+      <td>
+        <div class="num-input">
+          <input type="number" min="0" value="${val}"
+            oninput="update('${f.id}', +this.value)">
+          ${f.sinDatos ? '<span style="font-size:.7rem;color:var(--amarillo)">Archivo pendiente de actualizar a Jun</span>' : ''}
+        </div>
+      </td>
+      <td>
+        <div class="num-input">
+          <input type="number" min="0" value="${state[f.id].reprogramados}"
+            oninput="updateRep('${f.id}', +this.value)"
+            style="width:60px;background:#fff7ed;border-color:#fdba74">
+        </div>
+      </td>
+      <td style="text-align:center">
+        <span style="font-size:1rem;font-weight:800">${f.brigadas || '—'}</span>
+        <div style="font-size:.65rem;color:var(--sub)">brigada${f.brigadas!==1?'s':''}</div>
+        ${f.vacaciones ? `<div style="font-size:.62rem;color:#b45309;margin-top:2px">🏖 ${f.notaVac}</div>` : ''}
+      </td>
+      <td>
+        <span class="meta-txt">${metaLabel}</span>
+        <div style="font-size:.65rem;color:var(--sub);margin-top:2px">Cap: ${f.capSem || f.meta}/sem</div>
+      </td>
+      <td>
+        <div style="font-size:.85rem;font-weight:700">${ancho}%</div>
+        <div class="barra-wrap">
+          <div class="barra" style="width:${ancho}%;background:${barColor}"></div>
+        </div>
+      </td>
+      <td><div class="sem ${cl}"></div></td>
+    </tr>`;
+  });
+
+  renderTotales();
+}
+
+function update(id, val) {
+  state[id][semActual] = val;
+  render();
+}
+
+function updateRep(id, val) {
+  state[id].reprogramados = val;
+  render();
+}
+
+function renderTotales() {
+  const total  = FRENTES.reduce((a, f) => a + state[f.id][semActual], 0);
+  const metaT  = FRENTES.reduce((a, f) => a + (f.meta || 0), 0);
+  const pctT   = metaT ? Math.round(total / metaT * 100) : 0;
+  const ok     = FRENTES.filter(f => !f.sinDatos && f.meta && state[f.id][semActual] >= f.meta).length;
+  const total_frentes = FRENTES.filter(f => !f.sinDatos && f.meta).length;
+
+  const totalRep = FRENTES.reduce((a, f) => a + state[f.id].reprogramados, 0);
+
+  document.getElementById("totales").innerHTML = `
+    <div class="stat-card ${semActual==='hecho'?'verde-t':'azul-t'}">
+      <div class="num">${total}</div>
+      <div class="lbl">${semActual==='hecho'?'Realizados':'Programados'}</div>
+    </div>
+    <div class="stat-card gris-t">
+      <div class="num">${metaT}</div>
+      <div class="lbl">Meta semanal total</div>
+    </div>
+    <div class="stat-card ${pctT>=100?'verde-t':pctT>=75?'':''}">
+      <div class="num">${pctT}%</div>
+      <div class="lbl">Avance global</div>
+    </div>
+    <div class="stat-card ${ok===total_frentes?'verde-t':'gris-t'}">
+      <div class="num">${ok}/${total_frentes}</div>
+      <div class="lbl">Frentes en meta</div>
+    </div>
+    <div class="stat-card" style="background:#fff7ed;border-color:#fdba74">
+      <div class="num" style="color:#c2410c">${totalRep}</div>
+      <div class="lbl">Reprogramados</div>
+    </div>`;
+}
+
+function resetData() {
+  FRENTES.forEach(f => { state[f.id] = { hecho: f.hecho, proxima: f.proxima, reprogramados: f.reprogramados || 0 }; });
+  render();
+}
+
+function exportar() {
+  const esSem = semActual === "hecho";
+  const periodo = esSem ? "11 – 17 Jun 2026 (Lo que hicimos)" : "18 – 24 Jun 2026 (Lo que haremos)";
+  let txt = `REPORTE SEMANAL · ÁREA TÉCNICA · MDREIECK\n`;
+  txt += `Periodo: ${periodo}\n${"─".repeat(52)}\n\n`;
+
+  FRENTES.forEach(f => {
+    const val = state[f.id][semActual];
+    const meta = f.meta || "—";
+    const pct = f.meta ? Math.round(val / f.meta * 100) + "%" : "N/A";
+    const nota = f.sinDatos ? " ⚠ Archivo pendiente de actualizar" : "";
+    txt += `${f.coord} (${f.resp})\n`;
+    txt += `  Servicios: ${val}  |  Meta: ${meta}/sem  |  Avance: ${pct}${nota}\n\n`;
+  });
+
+  const total = FRENTES.reduce((a, f) => a + state[f.id][semActual], 0);
+  const metaT = FRENTES.reduce((a, f) => a + (f.meta || 0), 0);
+  txt += `${"─".repeat(52)}\n`;
+  txt += `TOTAL ÁREA TÉCNICA: ${total} servicios | Meta: ${metaT} | ${Math.round(total/metaT*100)}%\n`;
+  txt += `\nGenerado: ${new Date().toLocaleDateString("es-MX", {day:"2-digit",month:"long",year:"numeric"})}\n`;
+
+  const blob = new Blob([txt], {type: "text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Reporte_${esSem?"11-17":"18-24"}_Jun_2026_AreaTecnica.txt`;
+  a.click();
+}
+
+// ── Datos actividad brigadas ─────────────────────────────────────────────────
+const COORD_LABEL = { LEV:"Levantamientos", INST:"Instalaciones", MANT:"Mantenimientos", BAN:"Banorte" };
+const COORD_COLOR = { LEV:"#0369a1", INST:"#7c3aed", MANT:"#b45309", BAN:"#16a34a" };
+
+const ACTIVIDAD = {
+  hecho:   {"BAN":{"dias":["11/06 Jue","12/06 Vie","13/06 Sáb","15/06 Lun","16/06 Mar","17/06 Mié"],"brigadas":[{"tec":"Eduardo Flores Medrano","dias":{"11/06 Jue":1,"12/06 Vie":2,"13/06 Sáb":0,"15/06 Lun":3,"16/06 Mar":3,"17/06 Mié":3},"total":12},{"tec":"José Antonio Ramírez Hernández","dias":{"11/06 Jue":0,"12/06 Vie":2,"13/06 Sáb":0,"15/06 Lun":3,"16/06 Mar":3,"17/06 Mié":3},"total":11},{"tec":"Erik Mario Cervantes Poot","dias":{"11/06 Jue":0,"12/06 Vie":1,"13/06 Sáb":0,"15/06 Lun":4,"16/06 Mar":0,"17/06 Mié":1},"total":6}]},"LEV":{"dias":["11/06 Jue","12/06 Vie","13/06 Sáb","15/06 Lun","16/06 Mar","17/06 Mié"],"brigadas":[{"tec":"Luis Osvaldo García Loreto","dias":{"11/06 Jue":2,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":3,"16/06 Mar":2,"17/06 Mié":2},"total":9},{"tec":"Ricardo Escobar Domínguez","dias":{"11/06 Jue":1,"12/06 Vie":1,"13/06 Sáb":0,"15/06 Lun":2,"16/06 Mar":1,"17/06 Mié":1},"total":6}]},"INST":{"dias":["11/06 Jue","12/06 Vie","13/06 Sáb","15/06 Lun","16/06 Mar","17/06 Mié"],"brigadas":[{"tec":"Fernando Rocha Cruz","dias":{"11/06 Jue":1,"12/06 Vie":2,"13/06 Sáb":0,"15/06 Lun":1,"16/06 Mar":1,"17/06 Mié":2},"total":7},{"tec":"Cristian Ruiz Gonzalez","dias":{"11/06 Jue":0,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":1,"16/06 Mar":1,"17/06 Mié":1},"total":3},{"tec":"Possam Externo","dias":{"11/06 Jue":0,"12/06 Vie":1,"13/06 Sáb":0,"15/06 Lun":0,"16/06 Mar":0,"17/06 Mié":0},"total":1}]},"MANT":{"dias":["11/06 Jue","12/06 Vie","13/06 Sáb","15/06 Lun","16/06 Mar","17/06 Mié"],"brigadas":[{"tec":"Possam Externo","dias":{"11/06 Jue":4,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":5,"16/06 Mar":4,"17/06 Mié":0},"total":13},{"tec":"Diego Armando Pérez Padilla","dias":{"11/06 Jue":3,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":1,"16/06 Mar":5,"17/06 Mié":2},"total":11},{"tec":"Ignacio Sierra Jiménez","dias":{"11/06 Jue":1,"12/06 Vie":2,"13/06 Sáb":0,"15/06 Lun":3,"16/06 Mar":2,"17/06 Mié":1},"total":9},{"tec":"Marcos Flores Hidalgo","dias":{"11/06 Jue":0,"12/06 Vie":3,"13/06 Sáb":0,"15/06 Lun":2,"16/06 Mar":2,"17/06 Mié":1},"total":8},{"tec":"Aurelio Puga Aguirre","dias":{"11/06 Jue":2,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":2,"16/06 Mar":0,"17/06 Mié":0},"total":4},{"tec":"Christian Ruiz González","dias":{"11/06 Jue":0,"12/06 Vie":2,"13/06 Sáb":0,"15/06 Lun":0,"16/06 Mar":0,"17/06 Mié":0},"total":2},{"tec":"Erik Mario Cervantes Poot","dias":{"11/06 Jue":2,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":0,"16/06 Mar":0,"17/06 Mié":0},"total":2},{"tec":"José Jaime Sánchez Tenorio","dias":{"11/06 Jue":0,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":1,"16/06 Mar":0,"17/06 Mié":1},"total":2},{"tec":"Manuel Bayardo Gómez Díaz","dias":{"11/06 Jue":0,"12/06 Vie":0,"13/06 Sáb":0,"15/06 Lun":0,"16/06 Mar":1,"17/06 Mié":0},"total":1}]}},
+  proxima: {"BAN":{"dias":["18/06 Jue","19/06 Vie","20/06 Sáb","22/06 Lun","23/06 Mar","24/06 Mié"],"brigadas":[{"tec":"Eduardo Flores Medrano","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":2,"23/06 Mar":2,"24/06 Mié":2},"total":7},{"tec":"José Antonio Ramírez Hernández","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":2,"23/06 Mar":2,"24/06 Mié":2},"total":7},{"tec":"Ignacio Sierra Jiménez","dias":{"18/06 Jue":0,"19/06 Vie":0,"20/06 Sáb":0,"22/06 Lun":1,"23/06 Mar":2,"24/06 Mié":1},"total":4},{"tec":"Erik Mario Cervantes Poot","dias":{"18/06 Jue":2,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":3}]},"LEV":{"dias":["18/06 Jue","19/06 Vie","20/06 Sáb","22/06 Lun","23/06 Mar","24/06 Mié"],"brigadas":[{"tec":"Luis Osvaldo García Loreto","dias":{"18/06 Jue":1,"19/06 Vie":0,"20/06 Sáb":0,"22/06 Lun":1,"23/06 Mar":2,"24/06 Mié":0},"total":4},{"tec":"Ricardo Escobar Domínguez","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":1},"total":2}]},"INST":{"dias":["18/06 Jue","19/06 Vie","20/06 Sáb","22/06 Lun","23/06 Mar","24/06 Mié"],"brigadas":[{"tec":"Cristian Ruiz Gonzalez","dias":{"18/06 Jue":1,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":1,"23/06 Mar":1,"24/06 Mié":1},"total":5},{"tec":"Fernando Rocha Cruz","dias":{"18/06 Jue":1,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":1,"23/06 Mar":1,"24/06 Mié":1},"total":5},{"tec":"Eduardo Flores Medrano","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":1}]},"MANT":{"dias":["18/06 Jue","19/06 Vie","20/06 Sáb","22/06 Lun","23/06 Mar","24/06 Mié"],"brigadas":[{"tec":"Ignacio Sierra Jiménez","dias":{"18/06 Jue":2,"19/06 Vie":1,"20/06 Sáb":2,"22/06 Lun":0,"23/06 Mar":2,"24/06 Mié":1},"total":8},{"tec":"Diego Armando Pérez Padilla","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":2,"23/06 Mar":0,"24/06 Mié":0},"total":3},{"tec":"Aurelio Puga Aguirre","dias":{"18/06 Jue":0,"19/06 Vie":2,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":2},{"tec":"José Antonio Ramírez Hernández","dias":{"18/06 Jue":2,"19/06 Vie":0,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":2},{"tec":"Eduardo Flores Medrano","dias":{"18/06 Jue":0,"19/06 Vie":0,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":1,"24/06 Mié":0},"total":1},{"tec":"José Jaime Sánchez Tenorio","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":1},{"tec":"Manuel Bayardo Gómez Díaz","dias":{"18/06 Jue":0,"19/06 Vie":1,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":0,"24/06 Mié":0},"total":1},{"tec":"Marcos Flores Hidalgo","dias":{"18/06 Jue":0,"19/06 Vie":0,"20/06 Sáb":0,"22/06 Lun":0,"23/06 Mar":1,"24/06 Mié":0},"total":1}]}}
+};
+
+let brigadasVisible = false;
+
+function toggleBrigadas() {
+  brigadasVisible = !brigadasVisible;
+  document.getElementById("panel-brigadas").style.display = brigadasVisible ? "block" : "none";
+  if (brigadasVisible) renderBrigadas();
+}
+
+// Estándar diario por coordinación
+const ESTANDAR = { LEV:2, INST:1, MANT:3, BAN:3 };
+const EXTERNOS = new Set(["Possam Externo","Javier Hernandez Externo","Sore Externo","Antonio Álvarez"]);
+const BAN_EXCLUSIVOS = new Set([
+  "José Antonio Ramírez Hernández",
+  "Eduardo Flores Medrano",
+  "Erik Mario Cervantes Poot",
+  "Ignacio Sierra Jiménez"
+]);
+
+function cellClass(n, std) {
+  if (n === 0) return "cell-0";
+  if (std && n > std) return "cell-over";
+  if (n === 1) return "cell-1";
+  if (n === 2) return "cell-2";
+  if (n === 3) return "cell-3";
+  return "cell-4p";
+}
+
+// Líderes de brigada por coordinación
+// Vacaciones confirmadas por Guillermo (22-Jun-2026)
+const VACACIONES = {
+  "Aurelio Puga Aguirre":            { desde:"22 Jun", hasta:"29 Jun", impacto:"Esta semana completa" },
+  "Ignacio Sierra Jiménez":          { desde:"25 Jun", hasta:"01 Jul", impacto:"Jue-Vie esta sem + semana siguiente" },
+  "Diego Armando Pérez Padilla":     { desde:"25 Jun", hasta:"01 Jul", impacto:"Jue-Vie esta sem + semana siguiente" },
+  "Ricardo Escobar Domínguez":       { desde:"22 Jun", hasta:"26 Jun", impacto:"Esta semana completa" },
+};
+
+const LIDERES_DEF = {
+  LEV:  ["Ricardo Escobar Domínguez","Luis Osvaldo García Loreto"],
+  INST: ["Cristian Ruiz Gonzalez","Fernando Rocha Cruz","Heberto Alejandro Chirino Ordoñez"],
+  MANT: ["José Jaime Sánchez Tenorio","Diego Armando Pérez Padilla",
+         "Aurelio Puga Aguirre","Marcos Flores Hidalgo"],
+  BAN:  ["Erik Mario Cervantes Poot","Eduardo Flores Medrano",
+         "Ignacio Sierra Jiménez","José Antonio Ramírez Hernández"],
+};
+
+let lideresVisible = false;
+
+function toggleLideres() {
+  lideresVisible = !lideresVisible;
+  document.getElementById("panel-lideres").style.display = lideresVisible ? "block" : "none";
+  if (lideresVisible) renderLideres();
+}
+
+function renderLideres() {
+  const act = ACTIVIDAD[semActual];
+  const semLabel = semActual === "hecho" ? "11 – 17 Jun 2026" : "18 – 24 Jun 2026";
+
+  // Recopilar todos los días disponibles (unión de todos los coords)
+  const diasSet = [];
+  for (const coord of ["LEV","INST","MANT","BAN"]) {
+    if (act[coord]) act[coord].dias.forEach(d => { if (!diasSet.includes(d)) diasSet.push(d); });
+  }
+  diasSet.sort();
+
+  // Construir mapa: tec → { dia → { coord → n } }
+  const tecMap = {};
+  for (const coord of ["LEV","INST","MANT","BAN"]) {
+    const d = act[coord];
+    if (!d) continue;
+    for (const b of d.brigadas) {
+      if (!tecMap[b.tec]) tecMap[b.tec] = {};
+      for (const dia of d.dias) {
+        if (!tecMap[b.tec][dia]) tecMap[b.tec][dia] = {};
+        tecMap[b.tec][dia][coord] = (tecMap[b.tec][dia][coord] || 0) + (b.dias[dia] || 0);
+      }
+    }
+  }
+
+  // Construir lista plana de todos los líderes con su coord primaria y estándar
+  const todosLideres = [];
+  for (const coord of ["LEV","INST","MANT","BAN"]) {
+    const lids = LIDERES_DEF[coord];
+    const std  = ESTANDAR[coord];
+    const matched = Object.keys(tecMap).filter(tec => lids.includes(tec));
+    for (const tec of matched) {
+      const diasVals = {};
+      let total = 0;
+      for (const dia of diasSet) {
+        const n = Object.values(tecMap[tec]?.[dia] || {}).reduce((s,v)=>s+v, 0);
+        diasVals[dia] = n;
+        total += n;
+      }
+      todosLideres.push({ tec, coord, std, dias: diasVals, total });
+    }
+  }
+  // Ordenar: por coord primaria (LEV→INST→MANT→BAN) luego por nombre
+  const coordOrd = {LEV:0,INST:1,MANT:2,BAN:3};
+  todosLideres.sort((a,b) => coordOrd[a.coord]-coordOrd[b.coord] || a.tec.localeCompare(b.tec));
+
+  const totDia = diasSet.map(dia => todosLideres.reduce((s,b)=>s+(b.dias[dia]||0),0));
+  const totGen  = todosLideres.reduce((s,b)=>s+b.total, 0);
+
+  let html = `<div class="brig-coord">
+    <div class="brig-coord-header">
+      <h4 style="font-size:.9rem">👤 Actividad por líder · ${semLabel}</h4>
+      <span style="margin-left:auto;font-size:.75rem;color:var(--sub)">${todosLideres.length} líderes · ${totGen} servicios totales</span>
+    </div>
+    <table class="brig-table">
+      <thead><tr>
+        <th class="tec-col">Técnico</th>
+        <th style="text-align:center">Coord</th>
+        ${diasSet.map(d=>`<th>${d}</th>`).join("")}
+        <th>Total</th><th>Cap.</th>
+      </tr></thead>
+      <tbody>
+        ${todosLideres.map(b => {
+          const cap = b.std * diasSet.length;
+          const rowPct = cap > 0 ? Math.round(b.total / cap * 100) : 0;
+          const vac = VACACIONES[b.tec];
+          const rowCls = vac ? "lider-row-over" : b.total > cap ? "lider-row-over" : "";
+          const badgeCls = b.total > cap ? "cap-over" : b.total >= cap*0.7 ? "cap-ok" : "cap-warn";
+          const vacBadge = vac
+            ? `<span style="display:inline-block;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:99px;background:#fee2e2;color:#dc2626;margin-left:5px">🏖 ${vac.desde}–${vac.hasta}</span>`
+            : "";
+          return `<tr class="${rowCls}" ${vac ? 'style="background:#fff5f5"' : ""}>
+            <td class="tec-name">${b.tec}${vacBadge}</td>
+            <td style="text-align:center"><span class="coord-tag coord-${b.coord}">${b.coord}</span></td>
+            ${diasSet.map(dia => {
+              const n = b.dias[dia]||0;
+              const coordMap = tecMap[b.tec]?.[dia] || {};
+              const entries = Object.entries(coordMap).filter(([,v])=>v>0);
+              const breakdown = entries.length > 1 || (entries.length===1 && entries[0][0]!==b.coord)
+                ? entries.map(([c,v])=>
+                    `<span class="coord-tag coord-${c}" style="font-size:.45rem;padding:1px 3px;display:inline-block;margin-top:1px">${c}·${v}</span>`
+                  ).join(" ")
+                : "";
+              return `<td style="vertical-align:middle;text-align:center">
+                ${n > 0 ? `<span class="${cellClass(n, b.std)}">${n}</span>` : `<span class="cell-0">·</span>`}
+                ${breakdown ? `<div style="margin-top:2px;line-height:1.1">${breakdown}</div>` : ""}
+              </td>`;
+            }).join("")}
+            <td class="total-col">${b.total}</td>
+            <td><span class="cap-badge ${badgeCls}">${rowPct}%</span></td>
+          </tr>`;
+        }).join("")}
+        <tr>
+          <td class="tec-name" style="color:var(--sub)" colspan="2">Total día</td>
+          ${totDia.map(n=>`<td class="total-col">${n}</td>`).join("")}
+          <td class="total-col">${totGen}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+
+  document.getElementById("panel-lideres").innerHTML = html;
+}
+
+function renderBrigadas() {
+  const act = ACTIVIDAD[semActual];
+  const semLabel = semActual === "hecho" ? "11 – 17 Jun 2026" : "18 – 24 Jun 2026";
+
+  // Recopilar todos los días (unión de las 4 coords)
+  const diasSet = [];
+  for (const coord of ["LEV","INST","MANT","BAN"]) {
+    if (act[coord]) act[coord].dias.forEach(d => { if (!diasSet.includes(d)) diasSet.push(d); });
+  }
+  diasSet.sort();
+
+  // Total por coordinación por día
+  const rows = ["LEV","INST","MANT","BAN"].map(coord => {
+    const d = act[coord];
+    const brigs = d ? d.brigadas.filter(b => coord === "BAN" || !BAN_EXCLUSIVOS.has(b.tec)) : [];
+    const totDia = diasSet.map(dia => brigs.reduce((s,b) => s + (b.dias[dia]||0), 0));
+    const totSem = totDia.reduce((s,n) => s+n, 0);
+    const meta   = FRENTES.find(f => f.id === coord.toLowerCase() || (coord==="MANT"&&f.id==="mant") || (coord==="BAN"&&f.id==="ban") || (coord==="LEV"&&f.id==="lev") || (coord==="INST"&&f.id==="inst"))?.meta || 0;
+    const pct    = meta ? Math.round(totSem / meta * 100) : 0;
+    const nBrig  = d ? d.brigadas.filter(b => !EXTERNOS.has(b.tec) && (coord==="BAN" || !BAN_EXCLUSIVOS.has(b.tec))).length : 0;
+    return { coord, totDia, totSem, meta, pct, nBrig };
+  });
+
+  const totalDia = diasSet.map((_,i) => rows.reduce((s,r)=>s+r.totDia[i],0));
+  const totalSem = rows.reduce((s,r)=>s+r.totSem, 0);
+  const metaTotal = rows.reduce((s,r)=>s+r.meta, 0);
+  const pctTotal  = metaTotal ? Math.round(totalSem/metaTotal*100) : 0;
+
+  const pctColor = p => p >= 100 ? "var(--verde)" : p >= 75 ? "var(--amarillo)" : "var(--rojo)";
+  const dayShort = d => d.replace(/\d{4} /,"");  // "11/06 Jue"
+
+  let html = `<div class="brig-coord">
+    <div class="brig-coord-header" style="margin-bottom:14px">
+      <h4 style="font-size:.95rem">📋 Actividad por coordinación · ${semLabel}</h4>
+      <span style="margin-left:auto;font-size:.75rem;color:var(--sub)">${totalSem} svc · Meta ${metaTotal} · Avance ${pctTotal}%</span>
+    </div>
+    <table class="brig-table">
+      <thead>
+        <tr>
+          <th style="min-width:130px">Coordinación</th>
+          <th style="text-align:center">Brigadas</th>
+          ${diasSet.map(d=>`<th style="text-align:center">${dayShort(d)}</th>`).join("")}
+          <th style="text-align:center">Total</th>
+          <th style="text-align:center">Meta</th>
+          <th style="text-align:center">Avance</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => {
+          const maxDia = Math.max(...r.totDia, 1);
+          return `<tr>
+            <td>
+              <span class="coord-tag coord-${r.coord}" style="margin-right:6px">${r.coord}</span>
+              <span style="font-size:.82rem;font-weight:600">${COORD_LABEL[r.coord]}</span>
+            </td>
+            <td style="text-align:center;font-size:.85rem;color:var(--sub)">${r.nBrig}</td>
+            ${r.totDia.map(n => {
+              const pct = Math.round(n/maxDia*100);
+              const cl  = n === 0 ? "cell-0" : cellClass(n, ESTANDAR[r.coord] * r.nBrig);
+              return `<td style="text-align:center">
+                <span class="${cl}">${n > 0 ? n : "·"}</span>
+              </td>`;
+            }).join("")}
+            <td style="text-align:center;font-weight:800;font-size:1rem">${r.totSem}</td>
+            <td style="text-align:center;color:var(--sub);font-size:.85rem">${r.meta}</td>
+            <td style="text-align:center">
+              <span style="font-weight:700;color:${pctColor(r.pct)}">${r.pct}%</span>
+              <div style="margin-top:3px;height:4px;border-radius:2px;background:#e2e8f0;width:52px;display:inline-block;vertical-align:middle">
+                <div style="height:4px;border-radius:2px;width:${Math.min(r.pct,100)}%;background:${pctColor(r.pct)}"></div>
+              </div>
+            </td>
+          </tr>`;
+        }).join("")}
+        <tr style="border-top:2px solid var(--borde);background:#f8fafc">
+          <td colspan="2" style="font-weight:700;color:var(--sub);font-size:.82rem;padding:6px 8px">Total área técnica</td>
+          ${totalDia.map(n=>`<td style="text-align:center;font-weight:700">${n}</td>`).join("")}
+          <td style="text-align:center;font-weight:800;font-size:1rem">${totalSem}</td>
+          <td style="text-align:center;color:var(--sub);font-size:.85rem">${metaTotal}</td>
+          <td style="text-align:center;font-weight:700;color:${pctColor(pctTotal)}">${pctTotal}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+
+  document.getElementById("panel-brigadas").innerHTML = html;
+}
+
+// ── Datos de conflictos por semana ──────────────────────────────────────────
+const CONFLICTOS = {
+  hecho: [{"tec":"Diego Armando Pérez Padilla","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"San Miguel Huehuetoca"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"CUEMANCO(6285)"}},{"tec":"Diego Armando Pérez Padilla","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"San Miguel Huehuetoca"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"ATENDIDO","cliente":"TOREO NET (9616)"}},{"tec":"Diego Armando Pérez Padilla","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"CUEMANCO(6285)"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"ATENDIDO","cliente":"TOREO NET (9616)"}},{"tec":"Marcos Flores Hidalgo","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"REPROGRAMADO","cliente":"SAÑUDO, S.A. DE C.V."},"b":{"coord":"MANT","ini":"10:00","fin":"11:00","status":"REPROGRAMADO","cliente":"VISION MUNDIAL DE MEXICO, AC"}},{"tec":"Possam Externo","fecha":"15/06/2026 Lun","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"CERRO DEL JUDIO (2183)"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"TIZIMIN (3695)"}},{"tec":"Diego Armando Pérez Padilla","fecha":"17/06/2026 Mié","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"REPROGRAMADO","cliente":"CENTRO DE ASISTENCIA RENAL"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"PROVIDENT"}},{"tec":"Ignacio Sierra Jiménez","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"LAMINADOS TECNICOS EXTRUIDOS SA DE CV"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"LANS LABORATORIOS DE REFERENCIA"}},{"tec":"Ignacio Sierra Jiménez","fecha":"15/06/2026 Lun","cross":false,"a":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"EJE 1 NORTE (2175)"},"b":{"coord":"MANT","ini":"10:00","fin":"12:00","status":"PROGRAMADO","cliente":"TLAHUAC CHALCO (1674)"}},{"tec":"Possam Externo","fecha":"11/06/2026 Jue","cross":false,"a":{"coord":"MANT","ini":"14:00","fin":"16:00","status":"ATENDIDO","cliente":"LA RAZA (6243)"},"b":{"coord":"MANT","ini":"14:00","fin":"16:00","status":"ATENDIDO","cliente":"CAMPESTRE ARAGON (6517)"}},{"tec":"Possam Externo","fecha":"16/06/2026 Mar","cross":false,"a":{"coord":"MANT","ini":"14:00","fin":"16:00","status":"PROGRAMADO","cliente":"TOREO DIMANTE (5609)"},"b":{"coord":"MANT","ini":"14:00","fin":"16:00","status":"PROGRAMADO","cliente":"OBSERVATORIO (2184)"}}],
+  proxima: [{"tec":"Ignacio Sierra Jiménez","fecha":"18/06/2026 Jue","cross":false,"a":{"coord":"MANT","ini":"13:00","fin":"15:00","status":"PROGRAMADO","cliente":"NUEVA WALMART DE MEXICO (CENTRAL INTERLOMAS 1118)"},"b":{"coord":"MANT","ini":"13:00","fin":"15:00","status":"PROGRAMADO","cliente":"NUEVA WALMART DE MEXICO (San Mateo)"}}]
+};
+
+// ── Datos demanda mantenimientos ───────────────────────────────────────────
+// demanda  = contratos existentes (instalaciones 2023-2026)
+// walmart  = Walmart CDMX + Edo Méx (543 svc nivelados)
+// nuevos   = 15 proyectos nuevos (808 svc nivelados)
+// demanda=polizas individuales | walmart=Walmart CDMX+EdoMex | nuevos=cuentas premium (Banamex,Cinepolis,SanPablo,etc.)
+// Fuente: 2026-06-22_CONTRATOS DE MANTENIMIENTO-PREMIUM-LGB-2026-2027 + distribucion nivelada 22-Jun-2026
+const DEMANDA_MTTOS = [
+  {mes:"2026-03", demanda:73,  walmart:0,   nuevos:0,   futuro:false},
+  {mes:"2026-04", demanda:114, walmart:0,   nuevos:0,   futuro:false},
+  {mes:"2026-05", demanda:57,  walmart:0,   nuevos:0,   futuro:false},
+  {mes:"2026-06", demanda:57,  walmart:0,   nuevos:182, futuro:true},  // Banamex 2do(152)+SanPablo(30)  →239
+  {mes:"2026-07", demanda:11,  walmart:20,  nuevos:209, futuro:true},  // Banamex(153)+SanPablo(30)+Cinepolis(26)+WalCDMX ini →240
+  {mes:"2026-08", demanda:13,  walmart:94,  nuevos:109, futuro:true},  // WalCDMX(94)+Cinepolis(48)+SanPablo(24)+Soriana(22)+TSJ(15) →216
+  {mes:"2026-09", demanda:32,  walmart:94,  nuevos:103, futuro:true},  // WalCDMX(94)+Cinepolis(38)+Soriana(22)+TSJ(15)+LaCosteña(13)+CityFresko(15) →229
+  {mes:"2026-10", demanda:30,  walmart:93,  nuevos:63,  futuro:true},  // WalCDMX(93)+Soriana(23)+CityFresko(16)+Anahuac(12)+Banjercito(12) →186
+  {mes:"2026-11", demanda:23,  walmart:0,   nuevos:45,  futuro:true},  // CityFresko(15)+Anahuac(12)+Banjercito(13)+Combustibles(5) →68
+  {mes:"2026-12", demanda:51,  walmart:130, nuevos:6,   futuro:true},  // WalEdoMex ini(130)+Combustibles(6) →187
+  {mes:"2027-01", demanda:22,  walmart:163, nuevos:0,   futuro:true},  // WalEdoMex(113)+WalCDMX 2do(50)
+  {mes:"2027-02", demanda:21,  walmart:120, nuevos:0,   futuro:true},
+  {mes:"2027-03", demanda:51,  walmart:88,  nuevos:26,  futuro:true},  // LaCosteña 2do(13)+Banjercito 3er(13)
+  {mes:"2027-04", demanda:12,  walmart:0,   nuevos:0,   futuro:true},
+  {mes:"2027-05", demanda:11,  walmart:0,   nuevos:0,   futuro:true},
+  {mes:"2027-06", demanda:17,  walmart:121, nuevos:25,  futuro:true},  // WalEdoMex 2do ini + Banjercito 4to
+  {mes:"2027-12", demanda:14,  walmart:0,   nuevos:25,  futuro:true},  // Banjercito cierre
+];
+
+// Cuentas premium (ACTUALIZACIÓN) — receptores × servicios contratados (MANT brigadas)
+const PROYECTOS_NUEVOS = [
+  {nombre:"Walmart CDMX 2026",               svc:602, tipo:"Walmart"},  // 301 × 2 svc
+  {nombre:"Walmart Estado de México",        svc:486, tipo:"Walmart"},  // 243 × 2 svc
+  {nombre:"Banamex Póliza",                  svc:305, tipo:"Premium"},  // 305 × 1 svc pendiente
+  {nombre:"San Pablo",                       svc:168, tipo:"Premium"},  // 84 × 2
+  {nombre:"Cinépolis",                       svc:112, tipo:"Premium"},  // 112 × 1 svc
+  {nombre:"Soriana (67 inmuebles)",          svc:134, tipo:"Premium"},  // 67 × 2
+  {nombre:"City Fresko (46 inmuebles)",      svc: 92, tipo:"Premium"},  // 46 × 2
+  {nombre:"Banjercito (25 inmuebles)",       svc:100, tipo:"Premium"},  // 25 × 4 svc
+  {nombre:"Anáhuac Póliza",                  svc: 48, tipo:"Premium"},  // 24 × 2
+  {nombre:"TSJ CDMX",                        svc: 30, tipo:"Premium"},  // 30 × 1
+  {nombre:"La Costeña",                      svc: 26, tipo:"Premium"},  // 13 × 2
+  {nombre:"Combustibles Ecológicos",         svc: 22, tipo:"Premium"},  // 11 × 2
+  // Banorte (120 rec × 2 svc = 240) → brigadas propias, no mezcla con MANT
+];
+const MES_ACTUAL_MTTO = "2026-06";
+
+let demandaVisible = false;
+
+function toggleDemanda() {
+  demandaVisible = !demandaVisible;
+  document.getElementById("panel-demanda").style.display = demandaVisible ? "block" : "none";
+  if (demandaVisible) renderDemanda();
+}
+
+function renderDemanda() {
+  const CAP      = 240; // 4 brigadas × 3 svc/día × 5 días × 4 semanas (sáb. = colchón)
+  const BRIGADAS = 4;
+  const totalWal = PROYECTOS_NUEVOS.find(p => p.nombre.startsWith("Walmart")).svc;
+  const totalNvo = PROYECTOS_NUEVOS.filter(p => !p.nombre.startsWith("Walmart")).reduce((s,p)=>s+p.svc,0);
+  const totalProy = PROYECTOS_NUEVOS.reduce((s,p)=>s+p.svc,0);
+
+  const futuros   = DEMANDA_MTTOS.filter(r => r.futuro);
+  const picoRec   = futuros.reduce((mx, r) => {
+    const t = r.demanda + r.walmart + r.nuevos;
+    return t > (mx.demanda + mx.walmart + mx.nuevos) ? r : mx;
+  }, futuros[0]);
+  const picoVal   = picoRec.demanda + picoRec.walmart + picoRec.nuevos;
+  const pctPico   = Math.round(picoVal / CAP * 100);
+  const deficit   = futuros.filter(r => (r.demanda + r.walmart + r.nuevos) > CAP).length;
+
+  document.getElementById("dem-kpis").innerHTML = `
+    <div class="dem-kpi kpi-ok">
+      <div class="kpi-val">${BRIGADAS}</div>
+      <div class="kpi-lab">Brigadas MANT</div>
+    </div>
+    <div class="dem-kpi kpi-ok">
+      <div class="kpi-val">${CAP}</div>
+      <div class="kpi-lab">Cap. svc/mes</div>
+    </div>
+    <div class="dem-kpi">
+      <div class="kpi-val">${totalProy.toLocaleString()}</div>
+      <div class="kpi-lab">Total proyectos nuevos</div>
+    </div>
+    <div class="dem-kpi">
+      <div class="kpi-val">${picoVal}</div>
+      <div class="kpi-lab">Pico combinado (${picoRec.mes})</div>
+    </div>
+    <div class="dem-kpi kpi-ok">
+      <div class="kpi-val">${pctPico}%</div>
+      <div class="kpi-lab">Utilización pico</div>
+    </div>
+    <div class="dem-kpi ${deficit > 0 ? '' : 'kpi-ok'}">
+      <div class="kpi-val">${deficit}</div>
+      <div class="kpi-lab">Meses con déficit</div>
+    </div>
+  `;
+
+  // ── Gráfica SVG ──────────────────────────────────────────────────────────
+  const W = 840, H = 250, PAD_L = 48, PAD_R = 16, PAD_T = 18, PAD_B = 58;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+  const slot   = chartW / DEMANDA_MTTOS.length;
+  const barW   = Math.floor(slot) - 4;
+  const MESES_ABR = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  const yScale = v => PAD_T + chartH - Math.min(v, CAP) / CAP * chartH;
+  const xPos   = i => PAD_L + i * slot + 2;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:640px">`;
+
+  // Grid
+  [0,50,100,150,200,250].forEach(v => {
+    const y = yScale(v);
+    svg += `<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="#e5e7eb" stroke-width=".8"/>`;
+    svg += `<text x="${PAD_L-4}" y="${y+3}" font-size="9" fill="#9ca3af" text-anchor="end">${v}</text>`;
+  });
+
+  // Línea capacidad
+  const yCap = yScale(CAP);
+  svg += `<line x1="${PAD_L}" y1="${yCap}" x2="${W-PAD_R}" y2="${yCap}" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="6,3" opacity=".8"/>`;
+  svg += `<text x="${W-PAD_R-2}" y="${yCap-4}" font-size="9" fill="#16a34a" text-anchor="end" font-weight="700">Cap. ${CAP}</text>`;
+
+  DEMANDA_MTTOS.forEach((r, i) => {
+    const x = xPos(i);
+    const isActual  = r.mes === MES_ACTUAL_MTTO;
+    const [anio, mesN] = r.mes.split("-");
+    const yBase = yScale(0);
+
+    // Capa 1: contratos existentes
+    const y1top = yScale(r.demanda);
+    const fill1 = isActual ? "#fbbf24" : r.futuro ? "#b45309" : "#d97706";
+    svg += `<rect x="${x}" y="${y1top}" width="${barW}" height="${yBase - y1top}" fill="${fill1}" opacity="${r.futuro?'1':'.55'}" rx="2"/>`;
+
+    // Capa 2: Walmart
+    if (r.walmart > 0) {
+      const y2bot = y1top;
+      const y2top = yScale(r.demanda + r.walmart);
+      svg += `<rect x="${x}" y="${y2top}" width="${barW}" height="${y2bot - y2top}" fill="#4ade80" opacity=".85"/>`;
+    }
+
+    // Capa 3: proyectos nuevos
+    if (r.nuevos > 0) {
+      const base3 = yScale(r.demanda + r.walmart);
+      const top3  = yScale(r.demanda + r.walmart + r.nuevos);
+      svg += `<rect x="${x}" y="${top3}" width="${barW}" height="${base3 - top3}" fill="#818cf8" opacity=".9"/>`;
+      // Etiqueta total
+      const total = r.demanda + r.walmart + r.nuevos;
+      svg += `<text x="${x+barW/2}" y="${top3-3}" font-size="8" fill="#3730a3" text-anchor="middle" font-weight="800">${total}</text>`;
+    } else if (r.demanda > 0 && !r.futuro) {
+      svg += `<text x="${x+barW/2}" y="${y1top-3}" font-size="8" fill="#92400e" text-anchor="middle" font-weight="700">${r.demanda}</text>`;
+    }
+
+    // Etiqueta eje X
+    svg += `<text x="${x+barW/2}" y="${H-PAD_B+13}" font-size="8.5" fill="${isActual?'#b45309':'#6b7280'}" text-anchor="middle" font-weight="${isActual?'800':'400'}">${MESES_ABR[+mesN]}</text>`;
+    if (mesN === "01" || i === 0) {
+      svg += `<text x="${x+barW/2}" y="${H-PAD_B+23}" font-size="8" fill="#9ca3af" text-anchor="middle">${anio.slice(2)}</text>`;
+    }
+    if (mesN === "01" && i > 0) {
+      svg += `<line x1="${x-1}" y1="${PAD_T}" x2="${x-1}" y2="${H-PAD_B}" stroke="#d1d5db" stroke-width="1" stroke-dasharray="3,3"/>`;
+    }
+  });
+
+  svg += `<text x="${PAD_L+chartW/2}" y="${H-4}" font-size="9" fill="#374151" text-anchor="middle">4 brigadas × 3 svc × 5 días × 4 sem = 240/mes (sáb. = colchón) · Carga nivelada ~114 svc/mes (${pctPico}% cap.) · ${deficit} meses con déficit</text>`;
+  svg += `</svg>`;
+  document.getElementById("dem-grafica").innerHTML = svg;
+
+  // ── Tabla de proyectos ────────────────────────────────────────────────────
+  const totalExis = DEMANDA_MTTOS.filter(r=>r.futuro).reduce((s,r)=>s+r.demanda,0);
+  const grandTotal = totalExis + totalProy;
+  let tbl = `<div style="margin-top:18px">
+    <div style="font-size:.8rem;font-weight:700;color:#374151;margin-bottom:8px">Cartera de proyectos — servicios de mantenimiento</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.75rem">
+      <thead>
+        <tr style="background:#f1f5f9">
+          <th style="text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0">Proyecto / Cliente</th>
+          <th style="text-align:right;padding:5px 8px;border-bottom:1px solid #e2e8f0">Svc totales</th>
+          <th style="text-align:right;padding:5px 8px;border-bottom:1px solid #e2e8f0">Svc/mes prom.</th>
+          <th style="text-align:left;padding:5px 8px;border-bottom:1px solid #e2e8f0">Tipo</th>
+        </tr>
+      </thead><tbody>`;
+  const mesesFut = 19;
+  PROYECTOS_NUEVOS.forEach(p => {
+    const isWal = p.nombre.startsWith("Walmart");
+    const color = isWal ? "#166534" : "#3730a3";
+    const bg    = isWal ? "#dcfce7" : "#ede9fe";
+    const tipo  = isWal ? "Walmart" : "Nuevo";
+    tbl += `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:5px 8px">${p.nombre}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700">${p.svc}</td>
+      <td style="padding:5px 8px;text-align:right;color:#6b7280">${(p.svc/mesesFut).toFixed(1)}</td>
+      <td style="padding:5px 8px"><span style="background:${bg};color:${color};font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:4px">${tipo}</span></td>
+    </tr>`;
+  });
+  tbl += `</tbody><tfoot>
+    <tr style="background:#f8fafc;font-weight:700">
+      <td style="padding:6px 8px">TOTAL PROYECTOS NUEVOS</td>
+      <td style="padding:6px 8px;text-align:right">${totalProy.toLocaleString()}</td>
+      <td style="padding:6px 8px;text-align:right;color:#6b7280">${(totalProy/mesesFut).toFixed(1)}</td>
+      <td></td>
+    </tr>
+    <tr style="background:#fef3c7;font-weight:700;font-size:.78rem">
+      <td style="padding:6px 8px">+ Contratos existentes (futuro)</td>
+      <td style="padding:6px 8px;text-align:right">${totalExis}</td>
+      <td style="padding:6px 8px;text-align:right;color:#6b7280">${(totalExis/mesesFut).toFixed(1)}</td>
+      <td></td>
+    </tr>
+    <tr style="background:#e0e7ff;font-weight:800;font-size:.8rem">
+      <td style="padding:6px 8px">TOTAL COMBINADO (19 meses)</td>
+      <td style="padding:6px 8px;text-align:right">${grandTotal.toLocaleString()}</td>
+      <td style="padding:6px 8px;text-align:right">${(grandTotal/mesesFut).toFixed(1)}/mes</td>
+      <td style="padding:6px 8px;font-size:.7rem;color:#3730a3">Cap. disponible: ${CAP - Math.round(grandTotal/mesesFut)} svc/mes</td>
+    </tr>
+  </tfoot></table></div>`;
+  document.getElementById("dem-tabla").innerHTML = tbl;
+}
+
+let panelVisible = false;
+
+function toggleConflictos() {
+  panelVisible = !panelVisible;
+  document.getElementById("panel-conflictos").style.display = panelVisible ? "block" : "none";
+  if (panelVisible) renderConflictos();
+}
+
+function renderConflictos() {
+  const lista = CONFLICTOS[semActual] || [];
+  const semLabel = semActual === "hecho" ? "11 – 17 Jun 2026" : "18 – 24 Jun 2026";
+  document.getElementById("panel-titulo").textContent =
+    `Conflictos de horario · ${semLabel} · ${lista.length} detectado(s)`;
+
+  const btn = document.getElementById("btn-conf");
+  if (lista.length === 0) {
+    btn.classList.add("sin-conflicto");
+    btn.textContent = "✓ Sin conflictos";
+  } else {
+    btn.classList.remove("sin-conflicto");
+    btn.textContent = `⚠ Conflictos (${lista.length})`;
+  }
+
+  const body = document.getElementById("panel-body");
+  if (lista.length === 0) {
+    body.innerHTML = `<div class="sin-conf">✓ No se detectaron conflictos de horario para esta semana.</div>`;
+    return;
+  }
+
+  const cross = lista.filter(c => c.cross);
+  const same  = lista.filter(c => !c.cross);
+
+  let html = "";
+  if (cross.length) {
+    html += `<div style="padding:8px 16px;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#dc2626;background:#fff5f5;border-bottom:1px solid var(--borde)">⚠ Entre coordinaciones — revisar urgente (${cross.length})</div>`;
+    html += cross.map(c => itemConf(c)).join("");
+  }
+  if (same.length) {
+    html += `<div style="padding:8px 16px;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#92400e;background:#fffbeb;border-bottom:1px solid var(--borde)">! Doble asignación misma coordinación (${same.length})</div>`;
+    html += same.map(c => itemConf(c)).join("");
+  }
+  body.innerHTML = html;
+}
+
+function itemConf(c) {
+  const badge = c.cross
+    ? `<span class="conflicto-badge badge-cross">CROSS</span>`
+    : `<span class="conflicto-badge badge-same">MISMO</span>`;
+  return `
+  <div class="conflicto-item">
+    <div>${badge}<span class="conf-tec">${c.tec}</span><span class="conf-fecha">${c.fecha}</span></div>
+    <div class="conf-rows">
+      <div class="conf-row">
+        <span class="coord-tag coord-${c.a.coord}">${c.a.coord}</span>
+        <span class="conf-hora">${c.a.ini}–${c.a.fin}</span>
+        <span style="color:var(--sub)">${c.a.status}</span>
+        <span>${c.a.cliente}</span>
+      </div>
+      <div class="conf-row">
+        <span class="coord-tag coord-${c.b.coord}">${c.b.coord}</span>
+        <span class="conf-hora">${c.b.ini}–${c.b.fin}</span>
+        <span style="color:var(--sub)">${c.b.status}</span>
+        <span>${c.b.cliente}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Al cambiar semana, re-renderizar conflictos si panel está abierto
+const _setSem = setSem;
+setSem = function(sem) {
+  _setSem(sem);
+  const btn = document.getElementById("btn-conf");
+  const lista = CONFLICTOS[sem] || [];
+  if (lista.length === 0) {
+    btn.classList.add("sin-conflicto");
+    btn.textContent = "✓ Sin conflictos";
+  } else {
+    btn.classList.remove("sin-conflicto");
+    btn.textContent = `⚠ Conflictos (${lista.length})`;
+  }
+  if (panelVisible) renderConflictos();
+  if (brigadasVisible) renderBrigadas();
+  if (lideresVisible) renderLideres();
+};
+
+// ── Contratos Premium ────────────────────────────────────────────────────────
+const CONTRATOS_DIST = [
+  {cliente:"Banamex Póliza",        rcpt:305, nota:"2do svc — deadline Jul 31 ⚠ Solo Marcos disponible Jun 22–Jul 1 (~27 svc). Jul 2-31: 264 svc = total 291 → déficit ~14",
+   meses:{Jun:152, Jul:153, Ago:0, Sep:0, Oct:0, Nov:0, Dic:0}, brigada:"MANT"},
+  {cliente:"San Pablo",             rcpt:84,  nota:"2do svc — deadline Ago 31",
+   meses:{Jun:30,  Jul:30,  Ago:24, Sep:0,  Oct:0,  Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"Cinépolis",             rcpt:112, nota:"1er svc — desde Jul",
+   meses:{Jun:0,   Jul:26,  Ago:48, Sep:38, Oct:0,  Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"Walmart CDMX",          rcpt:301, nota:"1er svc — Jul a Oct",
+   meses:{Jun:0,   Jul:20,  Ago:94, Sep:94, Oct:93, Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"Soriana (67 inm.)",     rcpt:67,  nota:"2do svc — deadline Oct 31",
+   meses:{Jun:0,   Jul:0,   Ago:22, Sep:22, Oct:23, Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"TSJ CDMX",              rcpt:30,  nota:"1er svc — Ago-Sep",
+   meses:{Jun:0,   Jul:0,   Ago:15, Sep:15, Oct:0,  Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"La Costeña",            rcpt:13,  nota:"1er svc — Sep fijo",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:13, Oct:0,  Nov:0,  Dic:0}, brigada:"MANT"},
+  {cliente:"City Fresko (46 inm.)", rcpt:46,  nota:"2do svc — deadline Nov 30",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:15, Oct:16, Nov:15, Dic:0}, brigada:"MANT"},
+  {cliente:"Anáhuac Póliza",        rcpt:24,  nota:"2do svc — deadline Nov 30",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:12, Nov:12, Dic:0}, brigada:"MANT"},
+  {cliente:"Banjercito (25 inm.)",  rcpt:25,  nota:"2do svc — deadline Dic 31",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:12, Nov:13, Dic:0}, brigada:"MANT"},
+  {cliente:"Combustibles Ecol.",    rcpt:11,  nota:"2do svc — deadline Dic 31",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:0,  Nov:5,  Dic:6}, brigada:"MANT"},
+  {cliente:"Walmart Edo Méx",       rcpt:243, nota:"1er svc — inicia Dic (cont. Ene 2027)",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:0,  Nov:0,  Dic:130}, brigada:"MANT"},
+  {cliente:"Banorte (120 inm.)",    rcpt:120, nota:"2do svc — deadline Nov 30 · brigadas propias",
+   meses:{Jun:0,   Jul:0,   Ago:0,  Sep:40, Oct:40, Nov:40, Dic:0}, brigada:"BAN"},
+];
+const COLS_DIST = ["Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const CAP_DIST  = 240;
+
+let contratosVisible = false;
+function toggleContratos() {
+  contratosVisible = !contratosVisible;
+  document.getElementById("panel-contratos").style.display = contratosVisible ? "block" : "none";
+  if (contratosVisible) renderContratos();
+}
+
+function renderContratos() {
+  // Totales por mes (MANT y BAN por separado)
+  const totMant = {}, totBan = {};
+  COLS_DIST.forEach(m => { totMant[m] = 0; totBan[m] = 0; });
+  CONTRATOS_DIST.forEach(c => COLS_DIST.forEach(m => {
+    if (c.brigada === "MANT") totMant[m] += (c.meses[m]||0);
+    else                      totBan[m]  += (c.meses[m]||0);
+  }));
+
+  const cellBg = (v, cap) => {
+    if (!v) return "color:#cbd5e1";
+    const pct = v / cap;
+    if (pct > 0.9) return "background:#fee2e2;color:#dc2626;font-weight:800";
+    if (pct > 0.6) return "background:#fef9c3;color:#92400e;font-weight:700";
+    return "background:#dcfce7;color:#166534;font-weight:700";
+  };
+
+  let html = `
+  <div style="font-size:.75rem;color:var(--sub);margin-bottom:12px">
+    Distribución nivelada para 4 brigadas MANT (cap. ${CAP_DIST} svc/mes) · Banorte: 4 brigadas propias · Regla: ≤6 meses entre servicios
+  </div>
+  <div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+    <thead>
+      <tr style="background:#f0fdfa">
+        <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #99f6e4;min-width:170px">Cliente</th>
+        <th style="text-align:center;padding:7px 8px;border-bottom:2px solid #99f6e4">Rcpt</th>
+        ${COLS_DIST.map(m=>`<th style="text-align:center;padding:7px 8px;border-bottom:2px solid #99f6e4;min-width:52px">${m}</th>`).join("")}
+        <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #99f6e4;color:var(--sub);font-size:.68rem">Nota</th>
+      </tr>
+    </thead><tbody>`;
+
+  CONTRATOS_DIST.forEach(c => {
+    const isBan = c.brigada === "BAN";
+    const rowBg = isBan ? "background:#f0fdf4" : "";
+    html += `<tr style="border-bottom:1px solid #f1f5f9;${rowBg}">
+      <td style="padding:6px 10px;font-weight:600">
+        ${isBan ? `<span style="font-size:.6rem;background:#dcfce7;color:#166534;padding:1px 5px;border-radius:3px;margin-right:4px;font-weight:700">BAN</span>` : ""}
+        ${c.cliente}
+      </td>
+      <td style="text-align:center;padding:6px 8px;color:var(--sub)">${c.rcpt}</td>
+      ${COLS_DIST.map(m => {
+        const v = c.meses[m]||0;
+        const cap = isBan ? 120 : CAP_DIST;
+        return `<td style="text-align:center;padding:4px 6px">
+          ${v ? `<span style="display:inline-block;padding:2px 6px;border-radius:5px;${cellBg(v,cap)}">${v}</span>` : `<span style="color:#e2e8f0">—</span>`}
+        </td>`;
+      }).join("")}
+      <td style="padding:6px 10px;font-size:.68rem;color:var(--sub);white-space:nowrap">${c.nota}</td>
+    </tr>`;
+  });
+
+  // Fila total MANT
+  html += `<tr style="border-top:2px solid #0f766e;background:#f0fdfa;font-weight:800">
+    <td style="padding:7px 10px;color:#0f766e">Total MANT (cap.${CAP_DIST})</td>
+    <td></td>
+    ${COLS_DIST.map(m => {
+      const v = totMant[m];
+      const libre = CAP_DIST - v;
+      const bg = libre < 0 ? "background:#fee2e2;color:#dc2626" : libre < 40 ? "background:#fef9c3;color:#92400e" : "background:#ccfbf1;color:#0f766e";
+      return `<td style="text-align:center;padding:5px 6px"><span style="display:inline-block;padding:2px 7px;border-radius:5px;font-size:.82rem;${bg}">${v}</span><div style="font-size:.6rem;color:#6b7280;margin-top:1px">${libre>=0?"+":""}${libre} lib</div></td>`;
+    }).join("")}
+    <td></td>
+  </tr>`;
+
+  // Fila total BAN
+  html += `<tr style="background:#f0fdf4;font-weight:700;font-size:.8rem">
+    <td style="padding:6px 10px;color:#15803d">Banorte (brigadas propias)</td>
+    <td></td>
+    ${COLS_DIST.map(m => {
+      const v = totBan[m];
+      return `<td style="text-align:center;padding:4px 6px">${v ? `<span style="color:#15803d">${v}</span>` : `<span style="color:#e2e8f0">—</span>`}</td>`;
+    }).join("")}
+    <td></td>
+  </tr>`;
+
+  html += `</tbody></table></div>
+  <div style="margin-top:12px;font-size:.72rem;color:var(--sub)">
+    ⚠ Banamex (305): arrancar esta semana en junio — deadline 31 julio ·
+    Walmart EdoMéx (243): 130 en Dic, 113 pasan a Ene 2027 (dentro del límite de 6 meses)
+  </div>`;
+
+  document.getElementById("contratos-body").innerHTML = html;
+}
+
+// Init
+setSem("hecho");
+</script>
+</body>
+</html>
