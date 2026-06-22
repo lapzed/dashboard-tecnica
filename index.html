@@ -761,13 +761,13 @@ const DEMANDA_MTTOS = [
   {mes:"2026-03", demanda:73,  walmart:0,   nuevos:0,   futuro:false},
   {mes:"2026-04", demanda:114, walmart:0,   nuevos:0,   futuro:false},
   {mes:"2026-05", demanda:57,  walmart:0,   nuevos:0,   futuro:false},
-  {mes:"2026-06", demanda:57,  walmart:0,   nuevos:182, futuro:true},  // Banamex 2do(152)+SanPablo(30)  →239
+  {mes:"2026-06", demanda:31,  walmart:0,   nuevos:208, futuro:true},  // Banamex 2do(152)+SanPablo(30)+Scotiabank(26)  →239
   {mes:"2026-07", demanda:11,  walmart:20,  nuevos:209, futuro:true},  // Banamex(153)+SanPablo(30)+Cinepolis(26)+WalCDMX ini →240
   {mes:"2026-08", demanda:13,  walmart:94,  nuevos:109, futuro:true},  // WalCDMX(94)+Cinepolis(48)+SanPablo(24)+Soriana(22)+TSJ(15) →216
   {mes:"2026-09", demanda:32,  walmart:94,  nuevos:103, futuro:true},  // WalCDMX(94)+Cinepolis(38)+Soriana(22)+TSJ(15)+LaCosteña(13)+CityFresko(15) →229
   {mes:"2026-10", demanda:30,  walmart:93,  nuevos:63,  futuro:true},  // WalCDMX(93)+Soriana(23)+CityFresko(16)+Anahuac(12)+Banjercito(12) →186
   {mes:"2026-11", demanda:23,  walmart:0,   nuevos:45,  futuro:true},  // CityFresko(15)+Anahuac(12)+Banjercito(13)+Combustibles(5) →68
-  {mes:"2026-12", demanda:51,  walmart:130, nuevos:6,   futuro:true},  // WalEdoMex ini(130)+Combustibles(6) →187
+  {mes:"2026-12", demanda:25,  walmart:130, nuevos:32,  futuro:true},  // WalEdoMex ini(130)+Combustibles(6)+Scotiabank 2do(26) →187
   {mes:"2027-01", demanda:22,  walmart:163, nuevos:0,   futuro:true},  // WalEdoMex(113)+WalCDMX 2do(50)
   {mes:"2027-02", demanda:21,  walmart:120, nuevos:0,   futuro:true},
   {mes:"2027-03", demanda:51,  walmart:88,  nuevos:26,  futuro:true},  // LaCosteña 2do(13)+Banjercito 3er(13)
@@ -791,6 +791,7 @@ const PROYECTOS_NUEVOS = [
   {nombre:"TSJ CDMX",                        svc: 30, tipo:"Premium"},  // 30 × 1
   {nombre:"La Costeña",                      svc: 26, tipo:"Premium"},  // 13 × 2
   {nombre:"Combustibles Ecológicos",         svc: 22, tipo:"Premium"},  // 11 × 2
+  {nombre:"Scotiabank (26 sucursales)",      svc: 52, tipo:"Premium"},  // 26 × 2 svc semestral Jun/Dic
   // Banorte (120 rec × 2 svc = 240) → brigadas propias, no mezcla con MANT
 ];
 const MES_ACTUAL_MTTO = "2026-06";
@@ -1073,6 +1074,8 @@ const CONTRATOS_DIST = [
    meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:12, Nov:12, Dic:0}, brigada:"MANT"},
   {cliente:"Banjercito (25 inm.)",  rcpt:25,  nota:"2do svc — deadline Dic 31",
    meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:12, Nov:13, Dic:0}, brigada:"MANT"},
+  {cliente:"Scotiabank (26 suc.)",   rcpt:26,  nota:"Semestral — 1er Jun 2026 / 2do Dic 2026",
+   meses:{Jun:26,  Jul:0,   Ago:0,  Sep:0,  Oct:0,  Nov:0,  Dic:26}, brigada:"MANT"},
   {cliente:"Combustibles Ecol.",    rcpt:11,  nota:"2do svc — deadline Dic 31",
    meses:{Jun:0,   Jul:0,   Ago:0,  Sep:0,  Oct:0,  Nov:5,  Dic:6}, brigada:"MANT"},
   {cliente:"Walmart Edo Méx",       rcpt:243, nota:"1er svc — inicia Dic (cont. Ene 2027)",
